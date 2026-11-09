@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermal Contact Resistance — CMY Calculator</title>
+<style>
+
+  :root{
+
+    --bg: #17191c;
+
+    --panel: #1e2124;
+
+    --panel-2: #23262a;
+
+    --line: #33373c;
+
+    --ink: #e7e6e2;
+
+    --ink-dim: #9a9c9f;
+
+    --copper: #c1793f;
+
+    --alu: #b9bec2;
+
+    --alumina: #e4dcc9;
+
+    --good: #7fb885;
+
+    --warn: #d99a4e;
+
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+    --sans: -apple-system, 'Segoe UI', Inter, sans-serif;
+
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+
+  body{padding:28px 16px 60px;}
+
+  .wrap{max-width:920px;margin:0 auto;}
+ 
+  header{margin-bottom:28px;}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-dim);margin:0 0 6px;}
+
+  h1{font-size:22px;margin:0 0 8px;font-weight:600;letter-spacing:-0.01em;}
+
+  .sub{color:var(--ink-dim);font-size:13.5px;line-height:1.5;max-width:640px;}
+
+  .sub code{font-family:var(--mono);background:var(--panel-2);padding:1px 5px;border-radius:3px;font-size:12.5px;}
+ 
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+  @media (max-width:720px){.grid{grid-template-columns:1fr;}}
+ 
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;}
+
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-dim);margin:0 0 16px;font-weight:600;}
+ 
+  .field{margin-bottom:16px;}
+
+  .field label{display:block;font-size:12.5px;color:var(--ink-dim);margin-bottom:6px;}
+
+  select, input[type=number]{
+
+    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+
+    padding:9px 10px;border-radius:6px;font-family:var(--mono);font-size:14px;
+
+  }
+
+  select:focus, input:focus{outline:2px solid var(--copper);outline-offset:1px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+ 
+  .surface-pair{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+
+  .swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+ 
+  .unit-toggle{display:flex;gap:6px;margin-top:6px;}
+
+  .unit-toggle button{
+
+    flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);
+
+    padding:6px 8px;font-size:11.5px;border-radius:5px;cursor:pointer;font-family:var(--mono);
+
+  }
+
+  .unit-toggle button.active{background:var(--copper);color:#1a1a1a;border-color:var(--copper);font-weight:600;}
+ 
+  /* Cross-section signature diagram */
+
+  .diagram{margin-top:18px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:14px;}
+
+  .diagram-label{font-family:var(--mono);font-size:10.5px;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;}
+
+  svg{display:block;width:100%;height:auto;}
+ 
+  .results{margin-top:16px;}
+
+  .result-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);}
+
+  .result-row:last-child{border-bottom:none;}
+
+  .result-label{font-size:12.5px;color:var(--ink-dim);}
+
+  .result-value{font-family:var(--mono);font-size:15px;font-weight:600;}
+
+  .result-value.big{font-size:20px;color:var(--copper);}
+
+  .result-unit{font-family:var(--mono);font-size:11px;color:var(--ink-dim);margin-left:4px;}
+ 
+  .bar-wrap{margin-top:14px;}
+
+  .bar-label-row{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);margin-bottom:5px;font-family:var(--mono);}
+
+  .bar{height:10px;border-radius:5px;overflow:hidden;display:flex;background:var(--line);}
+
+  .bar-seg-contact{background:var(--copper);height:100%;}
+
+  .bar-seg-gap{background:var(--alu);height:100%;}
+ 
+  .props{margin-top:18px;font-size:11.5px;color:var(--ink-dim);font-family:var(--mono);line-height:1.7;}
+
+  .props .flag{color:var(--warn);}
+ 
+  footer{margin-top:26px;font-size:11.5px;color:var(--ink-dim);line-height:1.6;max-width:700px;}
+
+  footer a{color:var(--copper);}
+</style>
+</head>
+<body>
+<div class="wrap">
+ 
+  <header>
+<p class="eyebrow">Cooper–Mikic–Yovanovich · Contact + Air-Gap Model</p>
+<h1>Thermal Contact Resistance Calculator</h1>
+<p class="sub">Spring-loaded clamp joint in air. Uses the CMY plastic-deformation correlation for the metal/ceramic asperity contact,
+
+      plus the Yovanovich gap-conductance model for the interstitial air path, combined as parallel conductances:
+<code>h_joint = h_contact + h_gap</code>.</p>
+</header>
+ 
+  <div class="grid">
+ 
+    <!-- INPUT PANEL -->
+<div class="panel">
+<h2>Joint Definition</h2>
+ 
+      <div class="field">
+<div class="surface-pair"><span class="swatch" id="sw1" style="background:var(--copper)"></span>
+<label style="margin:0;flex:1">Surface 1 material</label></div>
+<select id="mat1">
+<option value="Cu">Copper (annealed)</option>
+<option value="Al" selected>Aluminum (6061-T6)</option>
+<option value="Steel">Mild Steel (AISI 1018)</option>
+<option value="Alumina">Alumina (96%)</option>
+</select>
+<select id="finish1" style="margin-top:8px;">
+<option value="cast">Cast (as-cast)</option>
+<option value="machined" selected>Machined (milled)</option>
+<option value="polished">Polished</option>
+<option value="extruded">Extruded</option>
+</select>
+</div>
+ 
+      <div class="field">
+<div class="surface-pair"><span class="swatch" id="sw2" style="background:var(--alumina)"></span>
+<label style="margin:0;flex:1">Surface 2 material</label></div>
+<select id="mat2">
+<option value="Cu">Copper (annealed)</option>
+<option value="Al">Aluminum (6061-T6)</option>
+<option value="Steel">Mild Steel (AISI 1018)</option>
+<option value="Alumina" selected>Alumina (96%)</option>
+</select>
+<select id="finish2" style="margin-top:8px;">
+<option value="cast">Cast (as-cast)</option>
+<option value="machined" selected>Machined (milled)</option>
+<option value="polished">Polished</option>
+<option value="extruded">Extruded</option>
+</select>
+</div>
+ 
+      <div class="field">
+<label for="area">Apparent contact area</label>
+<input type="number" id="area" value="625" step="any" min="0">
+<div class="unit-toggle" id="areaUnit">
+<button data-u="mm2" class="active">mm²</button>
+<button data-u="cm2">cm²</button>
+<button data-u="in2">in²</button>
+</div>
+</div>
+ 
+      <div class="field">
+<label for="force">Clamping force</label>
+<input type="number" id="force" value="50" step="any" min="0">
+<div class="unit-toggle" id="forceUnit">
+<button data-u="N" class="active">N</button>
+<button data-u="lbf">lbf</button>
+<button data-u="kgf">kgf</button>
+</div>
+</div>
+ 
+      <div class="diagram">
+<div class="diagram-label">Interface cross-section</div>
+<svg id="crossSection" viewBox="0 0 400 140"></svg>
+</div>
+</div>
+ 
+    <!-- RESULTS PANEL -->
+<div class="panel">
+<h2>Results</h2>
+ 
+      <div class="results">
+<div class="result-row">
+<span class="result-label">Contact pressure</span>
+<span><span class="result-value" id="outP">–</span><span class="result-unit">kPa</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">P / H<sub>c</sub> (controlling material)</span>
+<span><span class="result-value" id="outRatio">–</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">Contact conductance, h<sub>contact</sub></span>
+<span><span class="result-value" id="outHc">–</span><span class="result-unit">W/m²K</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">Gap conductance, h<sub>gap</sub> (air)</span>
+<span><span class="result-value" id="outHg">–</span><span class="result-unit">W/m²K</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">Joint conductance, h<sub>joint</sub></span>
+<span><span class="result-value big" id="outHt">–</span><span class="result-unit">W/m²K</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">Total thermal resistance</span>
+<span><span class="result-value big" id="outR">–</span><span class="result-unit">K/W</span></span>
+</div>
+<div class="result-row">
+<span class="result-label">Area-specific resistance</span>
+<span><span class="result-value" id="outRa">–</span><span class="result-unit">mm²·K/W</span></span>
+</div>
+</div>
+ 
+      <div class="bar-wrap">
+<div class="bar-label-row"><span>Contact path share</span><span>Gap path share</span></div>
+<div class="bar"><div class="bar-seg-contact" id="barContact" style="width:50%"></div><div class="bar-seg-gap" id="barGap" style="width:50%"></div></div>
+</div>
+ 
+      <div class="props" id="propsOut"></div>
+</div>
+ 
+  </div>
+ 
+  <footer>
+<strong>Model notes:</strong> Contact conductance uses h = 1.25·k<sub>s</sub>·(m/σ)·(P/H<sub>c</sub>)<sup>0.95</sup>, with harmonic-mean k<sub>s</sub>,
+
+    combined roughness σ = √(σ₁²+σ₂²), combined slope m = √(m₁²+m₂²), and H<sub>c</sub> taken as the bulk Vickers hardness of the softer of the two materials.
+
+    Gap conductance uses h<sub>gap</sub> = k<sub>air</sub>/Y with the Yovanovich relative mean-plane-separation correlation Y/σ = 1.184·[−ln(3.132·P/H<sub>c</sub>)]<sup>0.547</sup>.
+
+    Default σ, m, k, and H values are representative for machined/ground surfaces — replace with measured values for a design-grade result.
+</footer>
+ 
+</div>
+ 
+<script>
+
+const MATERIALS = {
+
+  Cu:      { name:"Copper (annealed)",   k:391, H:400e6,   sigma:1.0e-6, m:0.15, color:"#c1793f" },
+
+  Al:      { name:"Aluminum (6061-T6)",  k:167, H:930e6,   sigma:1.0e-6, m:0.12, color:"#b9bec2" },
+
+  Steel:   { name:"Mild Steel (AISI 1018)", k:51.9, H:1300e6, sigma:1.0e-6, m:0.12, color:"#8a94a3" },
+
+  Alumina: { name:"Alumina (96%)",       k:25,  H:12800e6, sigma:0.5e-6, m:0.08, color:"#e4dcc9" }
+
+};
+
+const K_AIR = 0.026; // W/m-K at ~300K
+ 
+// Finish factors scale a material's baseline (machined) sigma and m.
+
+// Cast surfaces are much rougher with steeper local slopes (dendritic/mold texture);
+
+// polished surfaces are far smoother and gentler; extruded surfaces carry mild
+
+// die-line striations, slightly rougher than a milled finish.
+
+const FINISHES = {
+
+  cast:     { label:"Cast (as-cast)",   sigmaFactor:10,   mFactor:1.4 },
+
+  machined: { label:"Machined (milled)",sigmaFactor:1,    mFactor:1.0 },
+
+  polished: { label:"Polished",         sigmaFactor:0.15, mFactor:0.5 },
+
+  extruded: { label:"Extruded",         sigmaFactor:2,    mFactor:1.15 }
+
+};
+ 
+const AREA_TO_M2 = { mm2: 1e-6, cm2: 1e-4, in2: 6.4516e-4 };
+
+const FORCE_TO_N = { N: 1, lbf: 4.44822, kgf: 9.80665 };
+ 
+let areaUnit = 'mm2';
+
+let forceUnit = 'N';
+ 
+function setupToggle(id, setFn){
+
+  document.querySelectorAll('#'+id+' button').forEach(btn=>{
+
+    btn.addEventListener('click', ()=>{
+
+      document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.remove('active'));
+
+      btn.classList.add('active');
+
+      setFn(btn.dataset.u);
+
+      compute();
+
+    });
+
+  });
+
+}
+
+setupToggle('areaUnit', u=>areaUnit=u);
+
+setupToggle('forceUnit', u=>forceUnit=u);
+ 
+function fmt(x, sig=3){
+
+  if (!isFinite(x)) return "–";
+
+  if (x === 0) return "0";
+
+  const abs = Math.abs(x);
+
+  if (abs >= 1000 || abs < 0.01) return x.toExponential(sig-1);
+
+  return x.toPrecision(sig);
+
+}
+ 
+function compute(){
+
+  const mat1 = MATERIALS[document.getElementById('mat1').value];
+
+  const mat2 = MATERIALS[document.getElementById('mat2').value];
+
+  document.getElementById('sw1').style.background = mat1.color;
+
+  document.getElementById('sw2').style.background = mat2.color;
+ 
+  const areaVal = parseFloat(document.getElementById('area').value) || 0;
+
+  const forceVal = parseFloat(document.getElementById('force').value) || 0;
+
+  const A = areaVal * AREA_TO_M2[areaUnit];      // m^2
+
+  const F = forceVal * FORCE_TO_N[forceUnit];    // N
+ 
+  const ks = (2*mat1.k*mat2.k)/(mat1.k+mat2.k);
+ 
+  const finish1 = FINISHES[document.getElementById('finish1').value];
+
+  const finish2 = FINISHES[document.getElementById('finish2').value];
+
+  const sigma1 = mat1.sigma * finish1.sigmaFactor;
+
+  const sigma2 = mat2.sigma * finish2.sigmaFactor;
+
+  const m1 = mat1.m * finish1.mFactor;
+
+  const m2 = mat2.m * finish2.mFactor;
+ 
+  const sigma = Math.sqrt(sigma1**2 + sigma2**2);
+
+  const m = Math.sqrt(m1**2 + m2**2);
+
+  const Hc = Math.min(mat1.H, mat2.H);
+
+  const softName = (mat1.H <= mat2.H) ? mat1.name : mat2.name;
+ 
+  let P = A > 0 ? F / A : 0; // Pa
+
+  let ratio = Hc > 0 ? P / Hc : 0;
+ 
+  let hContact = 0, hGap = 0;
+
+  if (ratio > 0 && sigma > 0) {
+
+    hContact = 1.25 * ks * (m/sigma) * Math.pow(ratio, 0.95);
+
+  }
+
+  // gap conductance - valid while 3.132*ratio < 1
+
+  const argLn = 3.132 * ratio;
+
+  if (argLn > 0 && argLn < 1 && sigma > 0) {
+
+    const YoverSigma = 1.184 * Math.pow(-Math.log(argLn), 0.547);
+
+    const Y = YoverSigma * sigma;
+
+    hGap = Y > 0 ? K_AIR / Y : 0;
+
+  } else if (argLn >= 1) {
+
+    hGap = 0; // pressure high enough that gap model saturates / contact dominates fully
+
+  }
+ 
+  const hJoint = hContact + hGap;
+
+  const R = (hJoint > 0 && A > 0) ? 1/(hJoint*A) : Infinity;
+
+  const Rarea_m2 = hJoint > 0 ? 1/hJoint : Infinity; // K m^2 / W
+
+  const Rarea_mm2 = Rarea_m2 * 1e6;
+ 
+  document.getElementById('outP').textContent = fmt(P/1000);
+
+  document.getElementById('outRatio').textContent = fmt(ratio, 3);
+
+  document.getElementById('outHc').textContent = fmt(hContact);
+
+  document.getElementById('outHg').textContent = fmt(hGap);
+
+  document.getElementById('outHt').textContent = fmt(hJoint);
+
+  document.getElementById('outR').textContent = isFinite(R) ? fmt(R) : "∞";
+
+  document.getElementById('outRa').textContent = isFinite(Rarea_mm2) ? fmt(Rarea_mm2) : "∞";
+ 
+  const total = hContact + hGap;
+
+  const pctContact = total > 0 ? (hContact/total*100) : 50;
+
+  const pctGap = total > 0 ? (hGap/total*100) : 50;
+
+  document.getElementById('barContact').style.width = pctContact + '%';
+
+  document.getElementById('barGap').style.width = pctGap + '%';
+ 
+  let flags = '';
+
+  if (ratio > 0.05) flags += '<div class="flag">⚠ P/Hc is high for this model\'s typical validity range (best under ~1e-2). Result may be optimistic on hc.</div>';
+
+  if (argLn >= 1) flags += '<div class="flag">⚠ Gap model saturated (contact area ≈ apparent area) — gap term set to 0.</div>';
+ 
+  document.getElementById('propsOut').innerHTML =
+
+    `k_s (harmonic mean)  = ${fmt(ks)} W/m·K\n` +
+
+    `surface 1: sigma = ${fmt(sigma1*1e6)} \u00b5m, m = ${fmt(m1)}  (${finish1.label})\n` +
+
+    `surface 2: sigma = ${fmt(sigma2*1e6)} \u00b5m, m = ${fmt(m2)}  (${finish2.label})\n` +
+
+    `combined:  sigma = ${fmt(sigma*1e6)} \u00b5m, m = ${fmt(m)}\n` +
+
+    `H_c (controls)       = ${fmt(Hc/1e6)} MPa  — ${softName}\n` +
+
+    `k_air                = ${K_AIR} W/m·K\n` + flags;
+ 
+  drawDiagram(mat1, mat2, pctContact);
+
+}
+ 
+function drawDiagram(mat1, mat2, pctContact){
+
+  const svg = document.getElementById('crossSection');
+
+  const gapOpenness = Math.max(4, 16 - pctContact/8); // wider visual gap when contact fraction low
+
+  svg.innerHTML = `
+<rect x="0" y="0" width="400" height="55" fill="${mat1.color}" opacity="0.85"/>
+<rect x="0" y="${85+ (gapOpenness-8)}" width="400" height="${55-(gapOpenness-8)}" fill="${mat2.color}" opacity="0.85"/>
+
+    ${asperityPath(55, gapOpenness, true)}
+
+    ${asperityPath(85+(gapOpenness-8), gapOpenness, false)}
+<text x="8" y="18" font-family="monospace" font-size="10" fill="#111" opacity="0.6">${mat1.name.split(' ')[0]}</text>
+<text x="8" y="128" font-family="monospace" font-size="10" fill="#111" opacity="0.6">${mat2.name.split(' ')[0]}</text>
+<text x="200" y="${70+gapOpenness/2}" font-family="monospace" font-size="9" fill="#9a9c9f" text-anchor="middle">air gap + asperity contact</text>
+
+  `;
+
+}
+
+function asperityPath(baseY, amp, top){
+
+  let d = `M0,${baseY}`;
+
+  const n = 14;
+
+  for (let i=0;i<=n;i++){
+
+    const x = i*(400/n);
+
+    const jitter = (i%2===0? 1 : -0.4) * (amp*0.5) * (top?1:-1);
+
+    d += ` L${x},${baseY + jitter}`;
+
+  }
+
+  return `<path d="${d}" fill="none" stroke="#0d0e10" stroke-width="1.4" opacity="0.5"/>`;
+
+}
+ 
+['mat1','mat2','finish1','finish2','area','force'].forEach(id=>{
+
+  document.getElementById(id).addEventListener('input', compute);
+
+  document.getElementById(id).addEventListener('change', compute);
+
+});
+ 
+compute();
+</script>
+</body>
+</html>
+
+ 
